@@ -93,11 +93,14 @@ packages = [
 
 package_data = {"": ["*"], "cshogi.web": ["static/*", "templates/*"]}
 
+install_requires = [
+    'numpy>=1.19.5,<1.20.0; python_version == "3.6"',
+    'numpy>=1.21.6,<1.22.0; python_version == "3.7"',
+    'numpy>=1.21.6,<2.0; python_version == "3.8"',
+    'numpy>=1.21.6; python_version >= "3.9"',
+]
+
 extras_require = {
-    ':python_version == "3.6"': ["numpy>=1.19.5,<1.20.0"],
-    ':python_version == "3.7"': ["numpy>=1.21.6,<1.22.0"],
-    ':python_version >= "3.12" and python_version < "4.0"': ["numpy>=1.26.0,<1.27.0"],
-    ':python_version >= "3.8" and python_version < "3.12"': ["numpy"],
     "web": ["flask", "portpicker"],
 }
 
@@ -113,6 +116,7 @@ setup_kwargs = {
     "url": "https://github.com/TadaoYamaoka/cshogi",
     "packages": packages,
     "package_data": package_data,
+    "install_requires": install_requires,
     "extras_require": extras_require,
     "python_requires": ">=3.6",
     "ext_modules": cythonize(ext_modules, language_level="3"),
