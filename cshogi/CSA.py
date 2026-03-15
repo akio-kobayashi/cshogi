@@ -19,6 +19,13 @@ class Exporter:
     :param path: The file path to export to, defaults to None.
     :param append: Whether to append to the file, defaults to False.
     :param encoding: The encoding of the file, defaults to None.
+    
+    ---
+    対局をCSA形式でエクスポート（出力）するためのクラス。
+
+    :param path: 出力先のファイルパス。指定しない場合はNone。
+    :param append: ファイルに追記するかどうか。デフォルトはFalse（上書き）。
+    :param encoding: ファイルのエンコーディング（文字コード）。
     """
 
     def __init__(self, path: Optional[str] = None, append: bool = False, encoding: Optional[str] = None):
@@ -36,11 +43,25 @@ class Exporter:
         :type append: bool, optional
         :param encoding: The encoding of the file, defaults to None.
         :type encoding: str, optional
+
+        ---
+        書き込み用にファイルを開きます。
+
+        :param path: 出力先のファイルパス。
+        :type path: str
+        :param append: ファイルに追記するかどうか。デフォルトはFalse（上書き）。
+        :type append: bool, optional
+        :param encoding: ファイルのエンコーディング（文字コード）。
+        :type encoding: str, optional
         """
         self.f = open(path, 'a' if append else 'w', newline='\n', encoding=encoding)
 
     def close(self):
-        """Close the file."""
+        """Close the file.
+        
+        ---
+        ファイルを閉じます。
+        """
         self.f.close()
 
     def info(self, init_board: Optional[Union[str, cshogi.Board]] = None, names: Optional[List[str]] = None, var_info: Optional[Dict] = None, comment: Optional[str] = None, version: Optional[str] = None):
@@ -51,6 +72,15 @@ class Exporter:
         :param var_info: Additional variable information, defaults to None.
         :param comment: Comments about the game, defaults to None.
         :param version: Version information, defaults to None.
+
+        ---
+        対局の情報をファイルに書き込みます。
+
+        :param init_board: 初期盤面。SFEN形式の文字列かcshogi.Boardオブジェクトで指定。デフォルトはNone（平手初期局面）。
+        :param names: 対局者名のリスト。
+        :param var_info: 追加の変数情報（辞書形式）。
+        :param comment: 対局に関するコメント。
+        :param version: バージョン情報。
         """
         if self.f.tell() != 0:
             self.f.write('/\n')
@@ -98,6 +128,14 @@ class Exporter:
         :param time: The time taken for the move, defaults to None.
         :param comment: A comment about the move, defaults to None.
         :param sep: Separator character, defaults to newline.
+
+        ---
+        指し手をファイルに書き込みます。
+
+        :param move: 書き込む指し手（cshogiの内部表現）。
+        :param time: その手にかかった時間（秒）。
+        :param comment: 指し手に関するコメント。
+        :param sep: 区切り文字。デフォルトは改行。
         """
         self.f.write(COLOR_SYMBOLS[self.turn])
         self.f.write(cshogi.move_to_csa(move))
@@ -115,6 +153,12 @@ class Exporter:
 
         :param endgame: The result of the endgame.
         :param time: The time taken for the endgame, defaults to None.
+
+        ---
+        終局結果をファイルに書き込みます。
+
+        :param endgame: 終局結果（例: '%TORYO'）。
+        :param time: 終局までにかかった時間。
         """
         self.f.write(endgame)
         self.f.write('\n')

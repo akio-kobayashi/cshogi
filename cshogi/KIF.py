@@ -57,10 +57,17 @@ PIECE_BOD_SYMBOLS = [
 ]
 
 class ParserException(Exception):
+    """Exception raised for errors in the KIF parser.
+    ---
+    KIFパーサーでエラーが発生した際に送出される例外。
+    """
     pass
 
 class Parser:
-    """A class for parsing Japanese Shogi notation in KIF format."""
+    """A class for parsing Japanese Shogi notation in KIF format.
+    ---
+    KIF形式の日本語棋譜を解析するためのクラス。
+    """
 
     MOVE_RE = re.compile(r'\A *[0-9]+\s+(中断|投了|持将棋|千日手|詰み|切れ負け|反則勝ち|反則負け|(([１２３４５６７８９])([零一二三四五六七八九])|同　)([歩香桂銀金角飛玉と杏圭全馬龍])(打|(成?)\(([0-9])([0-9])\)))\s*(\( *([:0-9]+)/([:0-9]+)\))?.*\Z')
 
@@ -86,11 +93,17 @@ class Parser:
 
     @staticmethod
     def parse_file(path: str) -> "Parser":
-        """Parses a KI2 format Shogi game notation file.
+        """Parses a KIF format Shogi game notation file.
 
         :param path: Path to the file containing the KIF notation.
         :return: An instance of the Parser class containing all the extracted information.
-        :raises KIF.ParserException: In the case of a parse error.
+        :raises ParserException: In the case of a parse error.
+        ---
+        KIF形式の将棋棋譜ファイルを解析します。
+
+        :param path: KIF棋譜が記述されたファイルへのパス。
+        :return: 抽出された全ての情報を含むParserクラスのインスタンス。
+        :raises ParserException: パースエラーが発生した場合。
         """
         prefix, ext = os.path.splitext(path)
         enc = 'utf-8' if ext == '.kifu' else 'cp932'
@@ -103,7 +116,13 @@ class Parser:
 
         :param target: String containing the description of the pieces in hand.
         :return: A dictionary representing the pieces in hand.
-        :raises KIF.ParserException: In the case of a parse error.
+        :raises ParserException: In the case of a parse error.
+        ---
+        持ち駒を記述した文字列を解析します。
+
+        :param target: 持ち駒が記述された文字列（例：「金二　歩」）。
+        :return: 持ち駒を表す辞書。
+        :raises ParserException: パースエラーが発生した場合。
         """
         if target == 'なし': # None in japanese
             return {}
@@ -128,8 +147,14 @@ class Parser:
         :param line: String containing the moves in Japanese Shogi notation.
         :param board: Board object to apply the moves to.
         :return: A list of moves parsed from the line.
+        ---
+        一行の指し手文字列を解析し、指定された盤面に適用します。
+
+        :param line: 日本語の将棋棋譜表記を含む文字列。
+        :param board: 指し手を適用するBoardオブジェクト。
+        :return: 解析された指し手、消費時間、終局理由のタプル。
         """
-        # Normalize king/promoted kanji
+        # 漢字の正規化
         line = line.replace('王', '玉')
         line = line.replace('竜', '龍')
         line = line.replace('成銀', '全')
@@ -145,19 +170,12 @@ class Parser:
             else:
                 time = None
             if m.group(1) not in [
-                    '入玉勝ち',
-                    '中断',
-                    '投了',
-                    '持将棋',
-                    '千日手',
-                    '詰み',
-                    '切れ負け',
-                    '反則勝ち',
-                    '反則負け'
+                    '入玉勝ち', '中断', '投了', '持将棋', '千日手',
+                    '詰み', '切れ負け', '反則勝ち', '反則負け'
                 ]:
                 piece_type = cshogi.PIECE_JAPANESE_SYMBOLS.index(m.group(5))
                 if m.group(2) == '同　':
-                    # same position
+                    # 直前の手と同じ位置
                     to_square = move_to(board.peek())
                 else:
                     to_field = cshogi.NUMBER_JAPANESE_NUMBER_SYMBOLS.index(m.group(3)) - 1
@@ -165,7 +183,7 @@ class Parser:
                     to_square = to_rank + to_field * 9
 
                 if m.group(6) == '打' or (m.group(8) == '0' and m.group(9) == '0'):
-                    # piece drop
+                    # 駒打ち
                     return board.drop_move(to_square, piece_type), time, None
                 else:
                     from_field = int(m.group(8)) - 1
@@ -184,7 +202,13 @@ class Parser:
 
         :param kif_str: The KIF formatted string representing the Shogi game.
         :return: An instance of the Parser class containing all the extracted information.
-        :raises KIF.ParserException: In the case of a parse error.
+        :raises ParserException: In the case of a parse error.
+        ---
+        KIF形式の文字列を解析してParserオブジェクトに変換します。
+
+        :param kif_str: KIF形式の将棋棋譜を表す文字列。
+        :return: 抽出された全ての情報を含むParserクラスのインスタンス。
+        :raises ParserException: パースエラーが発生した場合。
         """
         line_no = 1
 
@@ -205,6 +229,7 @@ class Parser:
             if len(line) == 0:
                 pass
             elif line[0] == "*":
+                # コメント行の処理
                 if len(moves) > 0:
                     if len(moves) - len(comments) > 1:
                         comments.extend([None]*(len(moves) - len(comments) - 1))
@@ -219,6 +244,7 @@ class Parser:
                 else:
                     header_comments.append(line[1:])
             elif '：' in line:
+                # ヘッダー情報の処理
                 (key, value) = line.split('：', 1)
                 value = value.rstrip('　')
                 if key == '開始日時':
@@ -226,24 +252,20 @@ class Parser:
                         starttime = datetime.strptime(value, '%Y/%m/%d %H:%M:%S')
                     except ValueError:
                         try:
-                            # if KIF file has not second information, try another parse
+                            # 秒情報がない場合
                             starttime = datetime.strptime(value, '%Y/%m/%d %H:%M') 
                         except ValueError:
                             pass
 
-                if key == '先手' or key == '下手': # sente or shitate
-                    # Blacks's name
+                if key == '先手' or key == '下手':
                     names[cshogi.BLACK] = value
-                elif key == '後手' or key == '上手': # gote or uwate
-                    # White's name
+                elif key == '後手' or key == '上手':
                     names[cshogi.WHITE] = value
-                elif key == '先手の持駒' or key == '下手の持駒': # sente or shitate's pieces in hand
-                    # First player's pieces in hand
+                elif key == '先手の持駒' or key == '下手の持駒':
                     pieces_in_hand[cshogi.BLACK] == Parser.parse_pieces_in_hand(value)
-                elif key == '後手の持駒' or key == '上手の持駒': # gote or uwate's pieces in hand
-                    # Second player's pieces in hand
+                elif key == '後手の持駒' or key == '上手の持駒':
                     pieces_in_hand[cshogi.WHITE] == Parser.parse_pieces_in_hand(value)
-                elif key == '手合割': # teai wari
+                elif key == '手合割':
                     sfen = Parser.HANDYCAP_SFENS[value]
                     if sfen is None:
                         raise ParserException('Cannot support handycap type "other"')
@@ -282,10 +304,10 @@ class Parser:
                             win = None
                             endgame = '%CHUDAN'
                         else:
-                            # TODO: repetition of moves with continuous check
+                            # 連続王手の千日手など
                             win = DRAW
                             endgame = '%SENNICHITE'
-                        # 変化には対応していないため、終局以降の行は読まない
+                        # 変化手順には対応していないため、終局以降は読まない
                         break
             line_no += 1
 
@@ -304,6 +326,10 @@ class Parser:
         return parser
 
 def sec_to_time(sec):
+    """Convert seconds to H:M:S format.
+    ---
+    秒を時:分:秒のフォーマットに変換します。
+    """
     h, m_ = divmod(math.ceil(sec), 60*60)
     m, s = divmod(m_, 60)
     return h, m, s
@@ -312,8 +338,14 @@ def move_to_kif(move: int, prev_move: Optional[int] = None) -> str:
     """Convert a given move to Japanese KIF notation.
 
     :param move: An integer representing the move.
-    :param board: A Board object representing the current state of the game.
+    :param prev_move: The previous move, used to determine if "同" notation is applicable.
     :return: A string representing the move in KIF notation.
+    ---
+    cshogiの指し手整数をKIF形式の日本語棋譜文字列に変換します。
+
+    :param move: 変換する指し手（整数）。
+    :param prev_move: 「同」表記を使うか判断するための直前の指し手。
+    :return: KIF形式の指し手文字列。
     """
     to_sq = cshogi.move_to(move)
     move_to = KIFU_TO_SQUARE_NAMES[to_sq]
@@ -347,6 +379,11 @@ def board_to_bod(board: Board) -> str:
 
     :param board: A Board object representing the current state of the game.
     :return: A string representing the Board Diagram (BOD) of the game.
+    ---
+    盤面をBOD（Board Diagram）形式の文字列に変換します。
+
+    :param board: 現在の盤面状態を表すBoardオブジェクト。
+    :return: ゲームの盤面図（BOD）を表す文字列。
     """
     def hand_pieces_str(color):
         if any(board.pieces_in_hand[color]):
@@ -381,6 +418,13 @@ def move_to_bod(move: int, board: Board) -> str:
     :param move: An integer representing a specific move.
     :param board: A Board object representing the current state of the Shogi game.
     :return: A string representing the move in Board Diagram (BOD) format.
+    ---
+    指し手をBOD（Board Diagram）形式の表現に変換します。
+    実質的にKI2形式の指し手文字列を生成します。
+
+    :param move: 特定の指し手を表す整数。
+    :param board: 将棋の現在の盤面状態を表すBoardオブジェクト。
+    :return: BOD形式での指し手を表す文字列。
     """
     import cshogi.KI2
     move_str = cshogi.KI2.move_to_ki2(move, board)
@@ -394,6 +438,10 @@ class Exporter:
     """A class to handle the exporting of a game to KIF format.
 
     :param path: Optional path to the file where the KIF formatted game will be written. If None, no file is opened initially.
+    ---
+    対局をKIF形式でエクスポート（出力）するためのクラス。
+
+    :param path: KIF形式の棋譜を書き込むファイルへのパス（省略可能）。Noneの場合、ファイルは初期状態では開かれません。
     """
 
     def __init__(self, path: Optional[str] = None):
@@ -406,6 +454,10 @@ class Exporter:
         """Open a file for writing the KIF formatted game.
 
         :param path: Path to the file.
+        ---
+        KIF形式の棋譜を書き込むためにファイルを開きます。
+
+        :param path: ファイルへのパス。
         """
         _, ext = os.path.splitext(path)
         enc = 'utf-8' if ext == '.kifu' else 'cp932'
@@ -414,7 +466,10 @@ class Exporter:
         self.move_number = 1
 
     def close(self):
-        """Close the file."""
+        """Close the file.
+        ---
+        ファイルを閉じます。
+        """
         self.kifu.close()
 
     def header(self, names: List[str], starttime: Optional[datetime] = None, handicap: Optional[Union[str, Board]] = None):
@@ -423,6 +478,12 @@ class Exporter:
         :param names: List of player names.
         :param starttime: Start time of the game, defaults to current time.
         :param handicap: Handicap settings for the game.
+        ---
+        ヘッダー情報をファイルに書き込みます。
+
+        :param names: 対局者名のリスト。
+        :param starttime: 対局開始日時。デフォルトは現在時刻。
+        :param handicap: 手合割の設定。
         """
         if starttime is None:
             starttime = datetime.now()
@@ -447,6 +508,12 @@ class Exporter:
         :param move: The move to record.
         :param sec: Seconds spent on the move.
         :param sec_sum: Total seconds spent so far.
+        ---
+        指し手を記録します。
+
+        :param move: 記録する指し手。
+        :param sec: その手での消費時間（秒）。
+        :param sec_sum: それまでの合計消費時間（秒）。
         """
         m, s = divmod(math.ceil(sec), 60)
         h_sum, m_sum, s_sum = sec_to_time(sec_sum)
@@ -474,6 +541,12 @@ class Exporter:
         :param reason: The reason for the end of the game  (e.g., resign, sennichite).
         :param sec: Seconds spent on the last move.
         :param sec_sum: Total seconds spent during the game.
+        ---
+        対局の終局を記録します。
+
+        :param reason: 終局理由（例: 'resign', 'sennichite'）。
+        :param sec: 最後の指手での消費時間（秒）。
+        :param sec_sum: 対局全体の合計消費時間（秒）。
         """
         m, s = divmod(math.ceil(sec), 60)
         h_sum, m_sum, s_sum = sec_to_time(sec_sum)
@@ -515,6 +588,10 @@ class Exporter:
         """Record additional information related to the game.
 
         :param info: A string containing additional information.
+        ---
+        対局に関する追加情報を記録します（主にエンジンからの情報）。
+
+        :param info: 追加情報を含む文字列。
         """
         turn = self.move_number % 2
         items = info.split(' ')

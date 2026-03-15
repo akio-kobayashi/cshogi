@@ -1,4 +1,5 @@
 from ._cshogi import *
+from .features import FeatureExtractor
 
 __all__ = [
     "A1",
@@ -77,6 +78,7 @@ __all__ = [
     "F7",
     "F8",
     "F9",
+    "FeatureExtractor",
     "G1",
     "G2",
     "G3",

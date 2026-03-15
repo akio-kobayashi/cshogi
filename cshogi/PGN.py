@@ -2,6 +2,7 @@ from typing import List, Optional
 import cshogi
 from datetime import datetime
 
+# PGN形式のマス名マッピング
 PGN_SQUARE_NAMES = [
     'i9', 'i8', 'i7', 'i6', 'i5', 'i4', 'i3', 'i2', 'i1',
     'h9', 'h8', 'h7', 'h6', 'h5', 'h4', 'h3', 'h2', 'h1',
@@ -14,22 +15,36 @@ PGN_SQUARE_NAMES = [
     'a9', 'a8', 'a7', 'a6', 'a5', 'a4', 'a3', 'a2', 'a1',
 ]
 
+# PGN形式の持ち駒の駒名マッピング
 PGN_HAND_PIECES = [
     'P', 'L', 'N', 'S', 'G', 'B', 'R',
 ]
 
+# PGN形式の駒の種類マッピング
 PGN_PIECE_TYPES = [
     None,
     'P', 'L', 'N', 'S', 'B', 'R', 'G', 'K',
     '+P', '+L', '+K', '+S', '+B', '+R',
 ]
 
-def move_to_san(move):
+def move_to_san(move: int) -> str:
+    """Convert a given move to Standard Algebraic Notation (SAN) for PGN.
+
+    :param move: An integer representing the move.
+    :return: A string representing the move in SAN.
+    ---
+    指定された指し手をPGN形式のSAN（Standard Algebraic Notation）に変換します。
+
+    :param move: 指し手を表す整数。
+    :return: SAN形式の指し手文字列。
+    """
     move_to = PGN_SQUARE_NAMES[cshogi.move_to(move)]
 
     if cshogi.move_is_drop(move):
+        # 駒打ちの場合
         return PGN_HAND_PIECES[cshogi.move_drop_hand_piece(move)] + '@' + move_to
 
+    # 駒の移動の場合
     move_from = PGN_SQUARE_NAMES[cshogi.move_from(move)]
     promotion = '+' if cshogi.move_is_promotion(move) else ''
     return PGN_PIECE_TYPES[cshogi.move_from_piece_type(move)] + move_from + move_to + promotion
@@ -39,6 +54,11 @@ class Exporter:
 
     :param path: Optional path to the file where the PGN formatted game will be written. If None, no file is opened initially.
     :param append: Whether to append to the existing file or create a new one. Defaults to False.
+    ---
+    対局をPGN（Portable Game Notation）形式でエクスポート（出力）するためのクラス。
+
+    :param path: PGN形式の棋譜を書き込むファイルへのパス（省略可能）。Noneの場合、ファイルは初期状態では開かれません。
+    :param append: 既存ファイルに追記するか、新規作成するか。デフォルトはFalse（新規作成）。
     """
     def __init__(self, path: Optional[str] = None, append: bool = False):
         if path:
@@ -51,11 +71,19 @@ class Exporter:
 
         :param path: Path to the file.
         :param append: Whether to append to the existing file or create a new one. Defaults to False.
+        ---
+        PGN形式の棋譜を書き込むためにファイルを開きます。
+
+        :param path: ファイルへのパス。
+        :param append: 既存ファイルに追記するか、新規作成するか。デフォルトはFalse（新規作成）。
         """
         self.f = open(path, 'a' if append else 'w', newline='\n')
 
     def close(self):
-        """Close the file."""
+        """Close the file.
+        ---
+        ファイルを閉じます。
+        """
         self.f.close()
 
     def tag_pair(self, names: List[str], result: int, event: str = '?', site: str = '?', starttime: Optional[datetime] = None, round: int = 1):
@@ -67,6 +95,15 @@ class Exporter:
         :param site: Site of the game, defaults to "?".
         :param starttime: Start time of the game, defaults to current time.
         :param round: Round number, defaults to 1.
+        ---
+        PGN形式のタグペアセクションを書き込みます。対局に関するメタデータを含みます。
+
+        :param names: 先手と後手の対局者名のリスト。
+        :param result: 対局結果のコード。
+        :param event: イベント名。デフォルトは"?"。
+        :param site: 対局場所。デフォルトは"?"。
+        :param starttime: 対局開始日時。デフォルトは現在時刻。
+        :param round: ラウンド番号。デフォルトは1。
         """
         if starttime is None:
             starttime = datetime.now()
@@ -91,16 +128,24 @@ class Exporter:
         """Write the move text section of the PGN format, containing the actual moves of the game.
 
         :param moves: List of moves in the game.
+        ---
+        PGN形式の指し手セクションを書き込みます。実際の指し手を含みます。
+
+        :param moves: 対局の指し手のリスト。
         """
         line = ''
         for i, move in enumerate(moves):
             if i % 2 == 0:
+                # 奇数番目の指し手（先手の指し手）の前に手数を追加
                 part = str(i // 2 + 1) + '. '
             else:
                 part = ''
             part += move_to_san(moves[i])
             if i + 1 == len(moves):
+                # 最後の指し手の後に結果文字列を追加
                 part += ' ' + self.result_str
+            
+            # 1行80文字以内に収まるように調整
             if len(line) + len(part) <= 80:
                 if line != '':
                     line += ' '
