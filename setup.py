@@ -1,20 +1,42 @@
+import platform
+import sys
+
 from setuptools import setup
 from Cython.Build import build_ext, cythonize
 from setuptools import Extension
+
+
+IS_APPLE_SILICON = sys.platform == "darwin" and platform.machine() in ("arm64", "aarch64")
+
+
+def get_unix_compile_args():
+    args = [
+        "-std=c++17",
+        "-Wno-enum-constexpr-conversion",
+    ]
+    if not IS_APPLE_SILICON:
+        args.extend([
+            "-msse4.2",
+            "-mavx2",
+        ])
+    return args
+
+
+def get_core_define_macros():
+    if IS_APPLE_SILICON:
+        return []
+    return [
+        ("HAVE_SSE4", None),
+        ("HAVE_SSE42", None),
+        ("HAVE_AVX2", None),
+    ]
 
 
 class MyBuildExt(build_ext):
     def build_extensions(self):
         if self.compiler.compiler_type == "unix":
             for e in self.extensions:
-                e.extra_compile_args.extend(
-                    [
-                        "-std=c++17",
-                        "-msse4.2",
-                        "-mavx2",
-                        "-Wno-enum-constexpr-conversion",
-                    ]
-                )
+                e.extra_compile_args.extend(get_unix_compile_args())
         elif self.compiler.compiler_type == "msvc":
             for e in self.extensions:
                 e.extra_compile_args.extend(
@@ -63,11 +85,7 @@ ext_modules = [
         ],
         language="c++",
         include_dirs=["src"],
-        define_macros=[
-            ("HAVE_SSE4", None),
-            ("HAVE_SSE42", None),
-            ("HAVE_AVX2", None),
-        ],
+        define_macros=get_core_define_macros(),
     ),
     Extension(
         "cshogi.gym_shogi.envs.shogi_env",
@@ -119,7 +137,7 @@ setup_kwargs = {
     "install_requires": install_requires,
     "extras_require": extras_require,
     "python_requires": ">=3.6",
-    "ext_modules": cythonize(ext_modules, language_level="3"),
+    "ext_modules": cythonize(ext_modules, language_level=3),
     "cmdclass": {"build_ext": MyBuildExt},
 }
 
