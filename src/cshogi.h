@@ -227,6 +227,21 @@ public:
     int piece(const int sq) const { return (int)pos.piece((Square)sq); }
     int kingSquare(const int c) { return (int)pos.kingSquare((Color)c); }
     bool inCheck() const { return pos.inCheck(); }
+    std::vector<int> attackers_to(const int c, const int sq) const {
+        Bitboard bb = pos.attackersTo((Color)c, (Square)sq);
+        std::vector<int> result;
+        result.reserve(bb.popCount());
+        while (bb) {
+            result.emplace_back((int)bb.firstOneFromSQ11());
+        }
+        return result;
+    }
+    int attackers_to_count(const int c, const int sq) const {
+        return pos.attackersTo((Color)c, (Square)sq).popCount();
+    }
+    bool attackers_to_is_any(const int c, const int sq) const {
+        return pos.attackersToIsAny((Color)c, (Square)sq);
+    }
     int mateMoveIn1Ply() { return pos.mateMoveIn1Ply().value(); }
     int mateMove(int ply) {
         if (pos.inCheck())

@@ -291,6 +291,9 @@ cdef extern from "cshogi.h":
         int piece(const int sq)
         int kingSquare(const int c)
         bool inCheck()
+        vector[int] attackers_to(const int c, const int sq)
+        int attackers_to_count(const int c, const int sq)
+        bool attackers_to_is_any(const int c, const int sq)
         int mateMoveIn1Ply()
         int mateMove(int ply)
         bool is_mate(int ply)
@@ -836,6 +839,42 @@ cdef class Board:
         :rtype: bool
         """
         return self.__board.inCheck()
+
+    def attackers_to(self, int c, int sq):
+        """Returns the attacker squares for a given color and target square.
+
+        :param c: The attacking color, either BLACK or WHITE.
+        :type c: int
+        :param sq: The target square index.
+        :type sq: int
+        :return: A list of attacker square indices.
+        :rtype: list[int]
+        """
+        return list(self.__board.attackers_to(c, sq))
+
+    def attackers_to_count(self, int c, int sq):
+        """Returns the number of attackers for a given color and target square.
+
+        :param c: The attacking color, either BLACK or WHITE.
+        :type c: int
+        :param sq: The target square index.
+        :type sq: int
+        :return: The number of attackers.
+        :rtype: int
+        """
+        return self.__board.attackers_to_count(c, sq)
+
+    def attackers_to_is_any(self, int c, int sq):
+        """Checks if any attacker exists for a given color and target square.
+
+        :param c: The attacking color, either BLACK or WHITE.
+        :type c: int
+        :param sq: The target square index.
+        :type sq: int
+        :return: True if any attacker exists, otherwise False.
+        :rtype: bool
+        """
+        return self.__board.attackers_to_is_any(c, sq)
 
     def mate_move_in_1ply(self):
         """Finds a mating move in one ply.
